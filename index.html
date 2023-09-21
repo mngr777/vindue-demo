@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Loading model</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  </head>
+  <body>
+      <script>
+          let model = tf.loadGraphModel('./model/model.json')
+
+          function go() {
+            imageInput = document.getElementById('image-input')
+
+            files = imageInput.files
+            if (files.length == 0)
+              return
+            image = new Image()
+            image.width = 224
+            image.height = 224
+            image.onload = function () {
+              data = tf.browser.fromPixels(image).expandDims().asType('float32')
+              // data = data.div(256)
+              model.then(function (model) {
+                let result = model.predict(data)
+                draw(image, result)
+              })
+              
+            }
+            image.src = URL.createObjectURL(files[0])
+          }
+
+          function draw(image, result) {
+            canvas = document.getElementById('canvas')
+            ctx = canvas.getContext('2d')
+
+            let width = 224,
+                height = 224
+
+            canvas.width = width
+            canvas.height = height
+            ctx.drawImage(image, 0, 0, width, height)
+
+            result.reshape([4, 2]).array().then(function (keypoints) {
+              function toPx(coords) { return [coords[0] * width, coords[1] * height] }
+
+              ctx.beginPath()
+              ctx.lineWidth = 2
+              ctx.strokeStyle = '#ff00ff'
+              ctx.moveTo(...toPx(keypoints[keypoints.length - 1]))
+              keypoints.forEach(function (point) {
+                ctx.lineTo(...toPx(point))
+              })
+              ctx.stroke()
+            })
+          }
+      </script>
+      <div>
+          <input id="image-input" type="file" onchange="go()" />
+          <button onclick="go()">Go</button>
+      </div>
+      <canvas id="canvas" />
+  </body>
+</html>
