@@ -7,21 +7,27 @@
   </head>
   <body>
       <script>
-          let model = tf.loadGraphModel('./model/model.json')
+          function getModel(name) {
+            return tf.loadGraphModel('./model/' + name + '/model.json')
+          }
 
           function go() {
-            imageInput = document.getElementById('image-input')
+            let modelSelect = document.getElementById('model-select'),
+                imageInput = document.getElementById('image-input')
 
-            files = imageInput.files
+            let modelName = modelSelect.value,
+                imageSize = (modelName == 'efficientnet') ? 260 : 224
+
+            let files = imageInput.files
             if (files.length == 0)
               return
-            image = new Image()
-            image.width = 224
-            image.height = 224
+
+            let image = new Image()
+            image.width  = imageSize
+            image.height = imageSize
             image.onload = function () {
-              data = tf.browser.fromPixels(image).expandDims().asType('float32')
-              // data = data.div(256)
-              model.then(function (model) {
+              let data = tf.browser.fromPixels(image).expandDims().asType('float32')
+              getModel(modelName).then(function (model) {
                 let result = model.predict(data)
                 draw(image, result)
               })
@@ -31,11 +37,11 @@
           }
 
           function draw(image, result) {
-            canvas = document.getElementById('canvas')
-            ctx = canvas.getContext('2d')
+            let canvas = document.getElementById('canvas'),
+                ctx = canvas.getContext('2d')
 
-            let width = 224,
-                height = 224
+            let width = image.width,
+                height = image.height
 
             canvas.width = width
             canvas.height = height
@@ -56,6 +62,10 @@
           }
       </script>
       <div>
+          <select id="model-select" onchange="go()">
+              <option value="efficientnet" default>EfficientNetB2</option>
+              <option value="mobilenet">MobileNet</option>
+          </select>
           <input id="image-input" type="file" onchange="go()" />
           <button onclick="go()">Go</button>
       </div>
