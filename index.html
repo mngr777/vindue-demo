@@ -13,10 +13,13 @@
 
           function go() {
             let modelSelect = document.getElementById('model-select'),
-                imageInput = document.getElementById('image-input')
+                imageInput = document.getElementById('image-input'),
+                colorInput = document.getElementById('color-input')
+            
 
             let modelName = modelSelect.value,
-                imageSize = (modelName == 'efficientnet') ? 260 : 224
+                imageSize = (modelName == 'efficientnet') ? 260 : 224,
+                color = colorInput.value
 
             let files = imageInput.files
             if (files.length == 0)
@@ -29,14 +32,14 @@
               let data = tf.browser.fromPixels(image).expandDims().asType('float32')
               getModel(modelName).then(function (model) {
                 let result = model.predict(data)
-                draw(image, result)
+                draw(image, result, color)
               })
               
             }
             image.src = URL.createObjectURL(files[0])
           }
 
-          function draw(image, result) {
+          function draw(image, result, color) {
             let canvas = document.getElementById('canvas'),
                 ctx = canvas.getContext('2d')
 
@@ -52,7 +55,7 @@
 
               ctx.beginPath()
               ctx.lineWidth = 2
-              ctx.strokeStyle = '#ff00ff'
+              ctx.strokeStyle = color
               ctx.moveTo(...toPx(keypoints[keypoints.length - 1]))
               keypoints.forEach(function (point) {
                 ctx.lineTo(...toPx(point))
@@ -67,8 +70,9 @@
               <option value="mobilenet">MobileNet</option>
           </select>
           <input id="image-input" type="file" onchange="go()" />
+          <input id="color-input" type="color" value="#ff00ff" />
           <button onclick="go()">Go</button>
       </div>
-      <canvas id="canvas" />
+      <canvas id="canvas"></canvas>
   </body>
 </html>
