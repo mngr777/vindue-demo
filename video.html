@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Video</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  </head>
+  <body>
+      <script>
+          function getModel(name) {
+            return tf.loadGraphModel('./model/' + name + '/model.json')
+          }
+
+          function go() {
+            let video = document.getElementById('video'),
+                canvas = document.getElementById('canvas'),
+                checkbox = document.getElementById('checkbox')
+                ctx = canvas.getContext('2d'),
+                imageSize = 260;
+
+            canvas.width = imageSize
+            canvas.height = imageSize
+
+            function toPx(coords) { return [coords[0] * imageSize, coords[1] * imageSize] }
+            keypoints = null
+
+            getModel('efficientnet2')
+              .then(function (model) {
+                function drawKeypoints(ctx, keypoints, color) {
+                  ctx.beginPath()
+                    ctx.lineWidth = 2
+                    ctx.strokeStyle = color
+                    ctx.moveTo(...toPx(keypoints[keypoints.length - 1]))
+                    keypoints.forEach(function (point) {
+                      ctx.lineTo(...toPx(point))
+                    })
+                    ctx.stroke()
+                }
+
+                function drawLoop() {
+                  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+                  let data = canvas.toDataURL('image/jpg')
+
+                  if (keypoints) {
+                    drawKeypoints(ctx, keypoints.slice(0, 4), 'magenta')
+                    drawKeypoints(ctx, keypoints.slice(4, 8), 'cyan')
+                  }
+
+                  let image = new Image()
+                  image.width = imageSize
+                  image.height = imageSize
+                  image.onload = function () {
+                    let data = tf.browser.fromPixels(image).expandDims().asType('float32'),
+                        result = model.predict(data);
+                    result.reshape([8, 2]).array().then(function (kp) {
+                      keypoints = kp
+                      drawLoop()
+                    })
+                  }
+                  image.src = data
+                }
+
+                navigator.mediaDevices
+                  .getUserMedia({video: true, audio: false})
+                  .then(function (stream) {
+                    video.srcObject = stream;
+                    video.play();
+                    drawLoop()
+                  })
+              })
+
+
+          }
+          window.onload = go
+      </script>
+      <div>
+          <video id="video" style="display: none"></video>
+          <canvas id="canvas"></canvas>
+      </div>
+  </body>
+</html>
