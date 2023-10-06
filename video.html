@@ -14,7 +14,8 @@
           function go() {
             let video = document.getElementById('video'),
                 canvas = document.getElementById('canvas'),
-                checkbox = document.getElementById('checkbox')
+                checkbox = document.getElementById('checkbox'),
+                modelId = 'efficientnet.current',
                 ctx = canvas.getContext('2d'),
                 imageSize = 260;
 
@@ -24,7 +25,7 @@
             function toPx(coords) { return [coords[0] * imageSize, coords[1] * imageSize] }
             keypoints = null
 
-            getModel('efficientnet2')
+            getModel(modelId)
               .then(function (model) {
                 function drawKeypoints(ctx, keypoints, color) {
                   ctx.beginPath()
@@ -50,9 +51,11 @@
                   image.width = imageSize
                   image.height = imageSize
                   image.onload = function () {
+                    tf.engine().startScope()
                     let data = tf.browser.fromPixels(image).expandDims().asType('float32'),
                         result = model.predict(data);
                     result.reshape([8, 2]).array().then(function (kp) {
+                      tf.engine().endScope()
                       keypoints = kp
                       drawLoop()
                     })
@@ -74,8 +77,18 @@
           window.onload = go
       </script>
       <div>
-          <video id="video" style="display: none"></video>
-          <canvas id="canvas"></canvas>
+          <!--
+          <div>
+              <select id="model-select" onchange="go()">
+                  <option value="efficientnet.current" default>EfficientNetB2</option>
+                  <option value="efficientnet.prev">EfficientNetB2 (prev)</option>
+              </select>
+          </div>
+          -->
+          <div>
+              <video id="video" style="display: none"></video>
+              <canvas id="canvas"></canvas>
+          </div>
       </div>
   </body>
 </html>
